@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Food and Blood Sugar Tracker</title>
+  <style>
+    /*
+      Base styles for the application.  Everything is scoped to avoid
+      collisions with browser defaults.  Colours and spacing have been
+      chosen to be clear and accessible, with a focus on legibility and
+      ease of use on both desktop and mobile devices.
+    */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #111827;
+    }
+
+    .app-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 2rem;
+    }
+
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.8rem;
+      text-align: center;
+      color: #e5e7eb;
+    }
+
+    .subheading {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-bottom: 1.5rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: #f9fafb;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.45);
+      border: 1px solid #e5e7eb;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    /*
+      Generic buttons used throughout the UI.  Primary buttons are
+      highlighted with a purple hue to draw the eye to important actions.
+      Ghost buttons are low‑profile and used for navigation or secondary
+      actions.  Danger buttons are used only for destructive actions such as
+      removing an entry.
+    */
+    button {
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn {
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .btn:hover {
+      background: #d1d5db;
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: white;
+      border-color: #4338ca;
+    }
+
+    .btn-primary:hover {
+      background: #4338ca;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: #4b5563;
+      border-color: transparent;
+      padding-inline: 0.5rem;
+    }
+
+    .btn-ghost:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+
+    /*
+      Calendar styling.  The calendar uses a 7×n grid for days of the month.
+      Days outside of the configured range are faded and disabled.  The
+      current day is highlighted; selected day is outlined.  A small dot
+      indicates days with data stored.
+    */
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      gap: 0.5rem;
+    }
+
+    .calendar-month-label {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #111827;
+    }
+
+    .calendar-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.35rem;
+      font-size: 0.8rem;
+    }
+
+    .weekday {
+      text-align: center;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 0.3rem;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 0.35rem;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .calendar-day.disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .calendar-day-number {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .calendar-day.today .calendar-day-number {
+      border-radius: 999px;
+      padding: 0.1rem 0.4rem;
+      background: #4f46e5;
+      color: white;
+    }
+
+    .calendar-day.selected {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.3);
+    }
+
+    .calendar-day-has-data::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #4f46e5;
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+    }
+
+    .small-hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.35rem;
+    }
+
+    /*
+      Day view styling.  Meals and extras are arranged in a vertical
+      column with scroll support for long days.  Each card encapsulates
+      input controls specific to that entry.  Colour coding of the
+      blood sugar field is applied at runtime based on the entered value.
+    */
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .day-header-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .day-header-sub {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .meal-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .meal-card {
+      border-radius: 12px;
+      padding: 0.65rem 0.75rem 0.75rem;
+      border: 1px solid #e5e7eb;
+      background: white;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .meal-card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .meal-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .meal-chip {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .field {
+      flex: 1;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #4b5563;
+      margin-bottom: 0.15rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="time"],
+    textarea {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.85rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    textarea {
+      min-height: 40px;
+      max-height: 140px;
+    }
+
+    .blood-sugar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .blood-sugar-row input {
+      flex: 0 0 70px;
+    }
+
+    .bs-hint {
+      font-size: 0.7rem;
+      color: #6b7280;
+    }
+
+    /* Colour coding for blood sugar ranges */
+    .range-normal {
+      background: #ecfdf3;
+      border-color: #16a34a;
+    }
+
+    .range-high {
+      background: #fffbeb;
+      border-color: #facc15;
+    }
+
+    .range-very-high {
+      background: #fff7ed;
+      border-color: #ea580c;
+    }
+
+    .range-low {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+
+    /* Extras specific styling */
+    .extras-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+
+    .extras-subtext {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .extra-title-input {
+      font-weight: 500;
+    }
+
+    .extra-meta-line {
+      font-size: 0.7rem;
+      color: #6b7280;
+      margin-top: 0.15rem;
+    }
+
+    /* Login overlay styling */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, #1d2437, #020617);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 50;
+    }
+
+    .overlay-card {
+      width: 100%;
+      max-width: 380px;
+      background: #020617;
+      border-radius: 16px;
+      padding: 1.4rem 1.6rem 1.6rem;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.9);
+      border: 1px solid #1f2937;
+      color: #e5e7eb;
+    }
+
+    .overlay-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .overlay-sub {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      margin-bottom: 1rem;
+    }
+
+    .overlay label {
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+      color: #d1d5db;
+    }
+
+    .overlay input[type="password"] {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #4b5563;
+      padding: 0.4rem 0.55rem;
+      font-size: 0.9rem;
+      background: #020617;
+      color: #e5e7eb;
+    }
+
+    .overlay-actions {
+      margin-top: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .overlay-error {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #f97316;
+    }
+
+    .overlay-small {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login / password overlay -->
+  <div id="loginOverlay" class="overlay">
+    <div class="overlay-card">
+      <!-- Existing password prompt -->
+      <div id="loginModeExisting">
+        <div class="overlay-title">Unlock tracker</div>
+        <div class="overlay-sub">Enter your password to open your log.</div>
+        <label for="passwordInput">Password</label>
+        <input type="password" id="passwordInput" autocomplete="current-password" />
+        <div class="overlay-actions">
+          <button class="btn-primary btn" id="loginButton">Unlock</button>
+          <button class="btn-ghost btn" id="resetAppButton" title="Clears password and all data">
+            Reset everything
+          </button>
+        </div>
+        <div id="loginError" class="overlay-error" style="display:none;"></div>
+        <div class="overlay-small">
+          Data and password are stored in this browser only using localStorage.
+        </div>
+      </div>
+
+      <!-- Create password prompt -->
+      <div id="loginModeCreate" style="display:none;">
+        <div class="overlay-title">Set a password</div>
+        <div class="overlay-sub">This protects your food and blood sugar log on this browser.</div>
+        <label for="newPasswordInput">New password</label>
+        <input type="password" id="newPasswordInput" autocomplete="new-password" />
+        <label for="confirmPasswordInput">Confirm password</label>
+        <input type="password" id="confirmPasswordInput" autocomplete="new-password" />
+        <div class="overlay-actions">
+          <button class="btn-primary btn" id="createPasswordButton">Save password</button>
+        </div>
+        <div id="createError" class="overlay-error" style="display:none;"></div>
+        <div class="overlay-small">
+          If you forget this password you will need to reset and lose stored data.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main application root -->
+  <div id="appRoot" style="display:none;">
+    <div class="app-shell">
+      <h1>Food and Blood Sugar Tracker</h1>
+      <div class="subheading">
+        Calendar from November 2025 to January 2027. Click any day to log meals.
+      </div>
+
+      <div class="layout">
+        <!-- Calendar card -->
+        <div class="card">
+          <div class="calendar-header">
+            <div>
+              <div class="calendar-month-label" id="monthLabel"></div>
+              <div class="small-hint" id="dateRangeHint"></div>
+            </div>
+            <div class="calendar-nav-group">
+              <button class="btn-ghost btn" id="prevMonthBtn">&#8592;</button>
+              <button class="btn-ghost btn" id="todayBtn">Today</button>
+              <button class="btn-ghost btn" id="nextMonthBtn">&#8594;</button>
+            </div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid">
+            <!-- weekday headers inserted by script -->
+          </div>
+          <div class="small-hint">
+            Dots on a day mean you have at least one entry saved.
+          </div>
+        </div>
+
+        <!-- Day view card -->
+        <div class="card">
+          <div class="day-header">
+            <div>
+              <div class="day-header-title" id="dayTitle"></div>
+              <div class="day-header-sub" id="daySubtitle"></div>
+            </div>
+          </div>
+
+          <div class="meal-column" id="mealColumn">
+            <!-- Meals and extras will be rendered here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*
+      This script implements the full functionality for the food and blood
+      sugar tracker.  Data is persisted to localStorage under two keys: one
+      for the user's password and one for the log itself.  The log is a
+      nested object keyed by date (YYYY-MM-DD) with entries for each
+      meal and an array of extras.  A small internal state tracks the
+      current month being viewed and the selected day.  The calendar
+      automatically highlights the current day according to the user's
+      local timezone.
+    */
+
+    /*****************
+     * Configuration
+     *****************/
+    const STORAGE_KEY_DATA = "foodBgLogV2";
+    const STORAGE_KEY_PASSWORD = "foodBgLogPassword";
+    // Range: inclusive start (Nov 1 2025) to inclusive end (Jan 31 2027)
+    const RANGE_START = new Date(2025, 10, 1);
+    const RANGE_END = new Date(2027, 0, 31);
+    const WEEKDAYS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // Default meal order for rendering
+    const MEALS = ["breakfast", "lunch", "dinner"];
+
+    // App state
+    let currentMonthDate = new Date(); // Initially current month
+    let selectedDate = new Date();
+
+    // In-memory cache of data to avoid repeatedly parsing JSON
+    let logData = {};
+
+    /*
+      Utility: zero‑pad numbers for date formatting.
+    */
+    function pad(n) {
+      return n.toString().padStart(2, "0");
+    }
+
+    /*
+      Format a date (Date object) into YYYY-MM-DD string used as key.
+    */
+    function dateKey(date) {
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    /*
+      Load log data from localStorage.  If parsing fails, clear the
+      storage.  After loading, ensure the object exists.
+    */
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY_DATA);
+      if (!raw) {
+        logData = {};
+      } else {
+        try {
+          logData = JSON.parse(raw) || {};
+        } catch (e) {
+          console.error("Invalid log data, clearing", e);
+          localStorage.removeItem(STORAGE_KEY_DATA);
+          logData = {};
+        }
+      }
+    }
+
+    /*
+      Persist logData back to localStorage.
+    */
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(logData));
+    }
+
+    /*
+      Retrieve or initialize data for a given day.  Each day stores an
+      object with keys breakfast, lunch, dinner, each containing
+      { foods: '', bloodSugar: '', time: '', notes: '' }, plus an
+      extras array storing arbitrary entries: { id, title, foods, bloodSugar, time, notes }.
+    */
+    function ensureDay(dateStr) {
+      if (!logData[dateStr]) {
+        logData[dateStr] = {
+          breakfast: { foods: "", bloodSugar: "", time: "", notes: "" },
+          lunch: { foods: "", bloodSugar: "", time: "", notes: "" },
+          dinner: { foods: "", bloodSugar: "", time: "", notes: "" },
+          extras: []
+        };
+      }
+      return logData[dateStr];
+    }
+
+    /*
+      Evaluate a blood sugar value (string or number) and return a class
+      indicating the range.  If the value is empty or not a number,
+      returns empty string.
+    */
+    function getRangeClass(bs) {
+      const n = parseFloat(bs);
+      if (isNaN(n)) return "";
+      if (n < 70) return "range-low";
+      if (n <= 180) return "range-normal";
+      if (n <= 250) return "range-high";
+      return "range-very-high";
+    }
+
+    /*
+      Update the subtitle summary for the currently selected day.  This summary
+      shows which meals have entries and how many extras exist.  It avoids
+      re-rendering the entire day view while allowing the heading to stay up
+      to date as the user types.
+    */
+    function updateDaySubtitle() {
+      const dKey = dateKey(selectedDate);
+      const dayData = ensureDay(dKey);
+      const extraCount = dayData.extras.length;
+      const summary = [];
+      MEALS.forEach((m) => {
+        const meal = dayData[m];
+        if (meal && meal.foods) summary.push(m.charAt(0).toUpperCase() + m.slice(1));
+      });
+      if (extraCount > 0) summary.push(`${extraCount} extra${extraCount > 1 ? 's' : ''}`);
+      const subtitleElement = document.getElementById("daySubtitle");
+      if (subtitleElement) {
+        subtitleElement.textContent = summary.length > 0 ? summary.join(", ") : "No entries yet.";
+      }
+    }
+
+    /*
+      Build the calendar grid for the current month.  This is called
+      whenever currentMonthDate changes or logData updates.  The grid
+      shows days from Sunday to Saturday; days outside of the allowed
+      range are disabled.  Each day cell includes markers indicating
+      stored data.  When a day is clicked, selectedDate is updated and
+      the day view is refreshed.
+    */
+    function buildCalendar() {
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+      // Insert weekday headers
+      WEEKDAYS_SHORT.forEach((wd) => {
+        const div = document.createElement("div");
+        div.className = "weekday";
+        div.textContent = wd;
+        grid.appendChild(div);
+      });
+      const year = currentMonthDate.getFullYear();
+      const month = currentMonthDate.getMonth();
+      // Start date: first day of month at 00:00
+      const firstDay = new Date(year, month, 1);
+      // Determine how many blank cells before the first day (weekday index)
+      const offset = firstDay.getDay();
+      // Number of days in this month
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      // Build cells: preceding blanks + days
+      const totalCells = offset + lastDay;
+      // Determine which month string to display
+      document.getElementById("monthLabel").textContent = firstDay.toLocaleString(undefined, { month: "long", year: "numeric" });
+      // Range hint (shows inclusive range boundaries)
+      const hintStart = RANGE_START.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      const hintEnd = RANGE_END.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      document.getElementById("dateRangeHint").textContent = `Range: ${hintStart} – ${hintEnd}`;
+
+      for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement("div");
+        cell.className = "calendar-day";
+        if (i < offset) {
+          // Previous month's trailing cells
+          cell.classList.add("disabled");
+        } else {
+          const dayNum = i - offset + 1;
+          const cellDate = new Date(year, month, dayNum);
+          const dKey = dateKey(cellDate);
+          // Add day number
+          const numSpan = document.createElement("span");
+          numSpan.className = "calendar-day-number";
+          numSpan.textContent = dayNum;
+          cell.appendChild(numSpan);
+          // Determine if today
+          const today = new Date();
+          if (cellDate.toDateString() === today.toDateString()) {
+            cell.classList.add("today");
+          }
+          // Determine if selected
+          if (cellDate.toDateString() === selectedDate.toDateString()) {
+            cell.classList.add("selected");
+          }
+          // Determine if in allowed range
+          if (cellDate < RANGE_START || cellDate > RANGE_END) {
+            cell.classList.add("disabled");
+          } else {
+            // Check if data exists for this date
+            const dayData = logData[dKey];
+            if (dayData) {
+              const hasContent =
+                (dayData.breakfast && dayData.breakfast.foods) ||
+                (dayData.lunch && dayData.lunch.foods) ||
+                (dayData.dinner && dayData.dinner.foods) ||
+                (dayData.extras && dayData.extras.length > 0);
+              if (hasContent) {
+                cell.classList.add("calendar-day-has-data");
+              }
+            }
+            cell.addEventListener("click", () => {
+              selectedDate = new Date(cellDate.getTime());
+              // Rebuild calendar to update selected highlight
+              buildCalendar();
+              // Show day view for selected date
+              renderDayView();
+            });
+          }
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    /*
+      Render the day view for the currently selectedDate.  This function
+      clears and repopulates the mealColumn element with meal cards and
+      extras sorted into the correct positions based on their time.  It
+      binds input events to update the in-memory data and persist to
+      storage immediately.
+    */
+    function renderDayView() {
+      const dayTitle = document.getElementById("dayTitle");
+      const daySubtitle = document.getElementById("daySubtitle");
+      const mealColumn = document.getElementById("mealColumn");
+      const dKey = dateKey(selectedDate);
+      const dayData = ensureDay(dKey);
+      // Display readable date heading
+      dayTitle.textContent = selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      // Show number of entries summary
+      const extraCount = dayData.extras.length;
+      let summary = [];
+      MEALS.forEach((m) => {
+        const meal = dayData[m];
+        if (meal && meal.foods) summary.push(m.charAt(0).toUpperCase() + m.slice(1));
+      });
+      if (extraCount > 0) summary.push(`${extraCount} extra${extraCount > 1 ? 's' : ''}`);
+      daySubtitle.textContent = summary.length > 0 ? summary.join(", ") : "No entries yet.";
+      // Clear container
+      mealColumn.innerHTML = "";
+      // Helper to create meal card
+      function createMealCard(mealName, mealObj) {
+        const card = document.createElement("div");
+        card.className = "meal-card";
+        // Header
+        const header = document.createElement("div");
+        header.className = "meal-card-header";
+        const label = document.createElement("span");
+        label.className = "meal-label";
+        label.textContent = mealName.charAt(0).toUpperCase() + mealName.slice(1);
+        header.appendChild(label);
+        card.appendChild(header);
+        // Foods field
+        const foodsField = document.createElement("div");
+        foodsField.className = "field";
+        const foodsLabel = document.createElement("label");
+        foodsLabel.textContent = "What did you eat";
+        const foodsInput = document.createElement("textarea");
+        foodsInput.value = mealObj.foods || "";
+        foodsInput.addEventListener("input", () => {
+          // Update the foods field for this meal without fully re-rendering the page.
+          mealObj.foods = foodsInput.value.trim();
+          saveData();
+          // Update the calendar dot indicator
+          buildCalendar();
+          // Only update the subtitle summary rather than re-rendering the entire day view
+          updateDaySubtitle();
+        });
+        foodsField.appendChild(foodsLabel);
+        foodsField.appendChild(foodsInput);
+        card.appendChild(foodsField);
+        // Time and blood sugar row
+        const row = document.createElement("div");
+        row.className = "input-row";
+        // Time
+        const timeField = document.createElement("div");
+        timeField.className = "field";
+        const timeLabel = document.createElement("label");
+        timeLabel.textContent = "Time";
+        const timeInput = document.createElement("input");
+        timeInput.type = "time";
+        timeInput.value = mealObj.time || "";
+        timeInput.addEventListener("change", () => {
+          mealObj.time = timeInput.value;
+          saveData();
+          renderDayView();
+        });
+        timeField.appendChild(timeLabel);
+        timeField.appendChild(timeInput);
+        row.appendChild(timeField);
+        // Blood sugar
+        const bsField = document.createElement("div");
+        bsField.className = "field";
+        const bsLabel = document.createElement("label");
+        bsLabel.textContent = "Blood sugar";
+        const bsRow = document.createElement("div");
+        bsRow.className = "blood-sugar-row";
+        const bsInput = document.createElement("input");
+        bsInput.type = "number";
+        bsInput.min = "";
+        bsInput.max = "";
+        bsInput.value = mealObj.bloodSugar || "";
+        bsInput.addEventListener("input", () => {
+          mealObj.bloodSugar = bsInput.value.trim();
+          // update class on card for colour coding
+          card.classList.remove("range-normal", "range-high", "range-very-high", "range-low");
+          const cls = getRangeClass(mealObj.bloodSugar);
+          if (cls) card.classList.add(cls);
+          saveData();
+        });
+        // Set initial class
+        const initCls = getRangeClass(mealObj.bloodSugar);
+        if (initCls) card.classList.add(initCls);
+        const naBtn = document.createElement("button");
+        naBtn.textContent = "N/A";
+        naBtn.className = "btn btn-ghost";
+        naBtn.style.fontSize = '0.75rem';
+        naBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          mealObj.bloodSugar = "";
+          bsInput.value = "";
+          card.classList.remove("range-normal", "range-high", "range-very-high", "range-low");
+          saveData();
+        });
+        bsRow.appendChild(bsInput);
+        bsRow.appendChild(naBtn);
+        bsField.appendChild(bsLabel);
+        bsField.appendChild(bsRow);
+        row.appendChild(bsField);
+        card.appendChild(row);
+        // Notes
+        const notesField = document.createElement("div");
+        notesField.className = "field";
+        const notesLabel = document.createElement("label");
+        notesLabel.textContent = "Notes";
+        const notesInput = document.createElement("textarea");
+        notesInput.value = mealObj.notes || "";
+        notesInput.addEventListener("input", () => {
+          mealObj.notes = notesInput.value.trim();
+          saveData();
+        });
+        notesField.appendChild(notesLabel);
+        notesField.appendChild(notesInput);
+        card.appendChild(notesField);
+        return card;
+      }
+      // Helper to create extra card
+      function createExtraCard(extraObj) {
+        const card = document.createElement("div");
+        card.className = "meal-card";
+        // Title header with remove button
+        const header = document.createElement("div");
+        header.className = "meal-card-header";
+        const titleInput = document.createElement("input");
+        titleInput.type = "text";
+        titleInput.placeholder = "Title";
+        titleInput.className = "extra-title-input";
+        titleInput.value = extraObj.title || "";
+        titleInput.addEventListener("input", () => {
+          // Update the title of this extra.  Avoid re-rendering the whole view, simply refresh the subtitle.
+          extraObj.title = titleInput.value.trim();
+          saveData();
+          updateDaySubtitle();
+        });
+        header.appendChild(titleInput);
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remove";
+        removeBtn.className = "btn btn-danger";
+        removeBtn.style.fontSize = '0.7rem';
+        removeBtn.addEventListener("click", () => {
+          // Remove this extra
+          const idx = dayData.extras.findIndex((x) => x.id === extraObj.id);
+          if (idx >= 0) dayData.extras.splice(idx, 1);
+          saveData();
+          buildCalendar();
+          renderDayView();
+        });
+        header.appendChild(removeBtn);
+        card.appendChild(header);
+        // Foods
+        const foodsField = document.createElement("div");
+        foodsField.className = "field";
+        const foodsLabel = document.createElement("label");
+        foodsLabel.textContent = "What did you eat";
+        const foodsInput = document.createElement("textarea");
+        foodsInput.value = extraObj.foods || "";
+        foodsInput.addEventListener("input", () => {
+          // Update foods for this extra.  Update the calendar dot and subtitle summary only.
+          extraObj.foods = foodsInput.value.trim();
+          saveData();
+          buildCalendar();
+          updateDaySubtitle();
+        });
+        foodsField.appendChild(foodsLabel);
+        foodsField.appendChild(foodsInput);
+        card.appendChild(foodsField);
+        // Time + blood sugar row
+        const row = document.createElement("div");
+        row.className = "input-row";
+        // Time
+        const timeField = document.createElement("div");
+        timeField.className = "field";
+        const timeLabel = document.createElement("label");
+        timeLabel.textContent = "Time";
+        const timeInput = document.createElement("input");
+        timeInput.type = "time";
+        timeInput.value = extraObj.time || "";
+        timeInput.addEventListener("change", () => {
+          extraObj.time = timeInput.value;
+          saveData();
+          renderDayView();
+        });
+        timeField.appendChild(timeLabel);
+        timeField.appendChild(timeInput);
+        row.appendChild(timeField);
+        // Blood sugar
+        const bsField = document.createElement("div");
+        bsField.className = "field";
+        const bsLabel = document.createElement("label");
+        bsLabel.textContent = "Blood sugar";
+        const bsRow = document.createElement("div");
+        bsRow.className = "blood-sugar-row";
+        const bsInput = document.createElement("input");
+        bsInput.type = "number";
+        bsInput.value = extraObj.bloodSugar || "";
+        bsInput.addEventListener("input", () => {
+          extraObj.bloodSugar = bsInput.value.trim();
+          card.classList.remove("range-normal", "range-high", "range-very-high", "range-low");
+          const cls = getRangeClass(extraObj.bloodSugar);
+          if (cls) card.classList.add(cls);
+          saveData();
+        });
+        // Set initial class
+        const clsInit = getRangeClass(extraObj.bloodSugar);
+        if (clsInit) card.classList.add(clsInit);
+        const naBtn2 = document.createElement("button");
+        naBtn2.textContent = "N/A";
+        naBtn2.className = "btn btn-ghost";
+        naBtn2.style.fontSize = '0.75rem';
+        naBtn2.addEventListener("click", (e) => {
+          e.preventDefault();
+          extraObj.bloodSugar = "";
+          bsInput.value = "";
+          card.classList.remove("range-normal", "range-high", "range-very-high", "range-low");
+          saveData();
+        });
+        bsRow.appendChild(bsInput);
+        bsRow.appendChild(naBtn2);
+        bsField.appendChild(bsLabel);
+        bsField.appendChild(bsRow);
+        row.appendChild(bsField);
+        card.appendChild(row);
+        // Notes
+        const notesField = document.createElement("div");
+        notesField.className = "field";
+        const notesLabel = document.createElement("label");
+        notesLabel.textContent = "Notes";
+        const notesInput = document.createElement("textarea");
+        notesInput.value = extraObj.notes || "";
+        notesInput.addEventListener("input", () => {
+          extraObj.notes = notesInput.value.trim();
+          saveData();
+        });
+        notesField.appendChild(notesLabel);
+        notesField.appendChild(notesInput);
+        card.appendChild(notesField);
+        return card;
+      }
+      // Build a combined array of entries for rendering: meal entries and extras inserted between
+      // Determine boundaries between meals using times entered by user or sensible defaults (breakfast < 12:00, lunch < 17:00)
+      // Convert HH:MM string to minutes
+      function toMinutes(t) {
+        if (!t) return null;
+        const parts = t.split(":");
+        if (parts.length < 2) return null;
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        return h * 60 + m;
+      }
+      // Extract meal times
+      const mealTimes = {};
+      MEALS.forEach((m) => {
+        const t = dayData[m].time;
+        const mins = toMinutes(t);
+        mealTimes[m] = mins;
+      });
+      // Determine default boundaries when times missing
+      const breakfastCut = mealTimes.breakfast != null ? mealTimes.breakfast + 1 : 12 * 60; // midday
+      const lunchCut = mealTimes.lunch != null ? mealTimes.lunch + 1 : 17 * 60; // 5pm
+      // Prepare extras groups: before lunch, before dinner, after dinner
+      const extrasBeforeLunch = [];
+      const extrasBeforeDinner = [];
+      const extrasAfterDinner = [];
+      dayData.extras.forEach((ex) => {
+        const mins = toMinutes(ex.time);
+        if (mins == null) {
+          // Put unscheduled extras at end
+          extrasAfterDinner.push(ex);
+        } else if (mins < breakfastCut) {
+          extrasBeforeLunch.push(ex);
+        } else if (mins < lunchCut) {
+          extrasBeforeDinner.push(ex);
+        } else {
+          extrasAfterDinner.push(ex);
+        }
+      });
+      // Sort extras within each group by time
+      function sortExtras(arr) {
+        arr.sort((a, b) => {
+          const ma = toMinutes(a.time) || 0;
+          const mb = toMinutes(b.time) || 0;
+          return ma - mb;
+        });
+      }
+      sortExtras(extrasBeforeLunch);
+      sortExtras(extrasBeforeDinner);
+      sortExtras(extrasAfterDinner);
+      // Compose: breakfast, extrasBeforeLunch, lunch, extrasBeforeDinner, dinner, extrasAfterDinner
+      // Insert meal cards only if within range (3 meals always shown)
+      // Add Add Extra button at bottom
+      // Add breakfast
+      const breakfastCard = createMealCard("breakfast", dayData.breakfast);
+      mealColumn.appendChild(breakfastCard);
+      extrasBeforeLunch.forEach((ex) => {
+        const extraCard = createExtraCard(ex);
+        mealColumn.appendChild(extraCard);
+      });
+      // Lunch
+      const lunchCard = createMealCard("lunch", dayData.lunch);
+      mealColumn.appendChild(lunchCard);
+      extrasBeforeDinner.forEach((ex) => {
+        const extraCard = createExtraCard(ex);
+        mealColumn.appendChild(extraCard);
+      });
+      // Dinner
+      const dinnerCard = createMealCard("dinner", dayData.dinner);
+      mealColumn.appendChild(dinnerCard);
+      extrasAfterDinner.forEach((ex) => {
+        const extraCard = createExtraCard(ex);
+        mealColumn.appendChild(extraCard);
+      });
+      // Add Extra button
+      const addExtraDiv = document.createElement("div");
+      addExtraDiv.style.marginTop = "0.5rem";
+      const addExtraBtn = document.createElement("button");
+      addExtraBtn.textContent = "+ Add extra";
+      addExtraBtn.className = "btn btn-primary";
+      addExtraBtn.style.width = '100%';
+      addExtraBtn.addEventListener("click", () => {
+        const newExtra = {
+          id: crypto.randomUUID(),
+          title: "",
+          foods: "",
+          bloodSugar: "",
+          time: "",
+          notes: ""
+        };
+        dayData.extras.push(newExtra);
+        saveData();
+        renderDayView();
+      });
+      addExtraDiv.appendChild(addExtraBtn);
+      mealColumn.appendChild(addExtraDiv);
+    }
+
+    /*
+      Password handling.  On initial load, we check for an existing
+      password.  If none exists, we show the create password form.  If a
+      password exists, we show the unlock form.  The password and data
+      are stored unencrypted in localStorage; this is a simple privacy
+      measure and not suitable against determined attackers.  Resetting
+      clears both password and data.
+    */
+    function initPassword() {
+      const savedPassword = localStorage.getItem(STORAGE_KEY_PASSWORD);
+      const loginOverlay = document.getElementById("loginOverlay");
+      const modeExisting = document.getElementById("loginModeExisting");
+      const modeCreate = document.getElementById("loginModeCreate");
+      const appRoot = document.getElementById("appRoot");
+      if (!savedPassword) {
+        // No password set: show create
+        modeExisting.style.display = "none";
+        modeCreate.style.display = "block";
+      } else {
+        modeExisting.style.display = "block";
+        modeCreate.style.display = "none";
+      }
+      // Handle create password
+      document.getElementById("createPasswordButton").addEventListener("click", () => {
+        const pw = document.getElementById("newPasswordInput").value;
+        const confirm = document.getElementById("confirmPasswordInput").value;
+        const err = document.getElementById("createError");
+        if (!pw) {
+          err.textContent = "Password cannot be empty.";
+          err.style.display = "block";
+          return;
+        }
+        if (pw !== confirm) {
+          err.textContent = "Passwords do not match.";
+          err.style.display = "block";
+          return;
+        }
+        localStorage.setItem(STORAGE_KEY_PASSWORD, pw);
+        err.style.display = "none";
+        // Switch to existing mode
+        modeCreate.style.display = "none";
+        modeExisting.style.display = "block";
+        alert("Password saved. Please use it to unlock your log.");
+      });
+      // Handle unlock
+      document.getElementById("loginButton").addEventListener("click", () => {
+        const pw = document.getElementById("passwordInput").value;
+        const err = document.getElementById("loginError");
+        if (pw === localStorage.getItem(STORAGE_KEY_PASSWORD)) {
+          err.style.display = "none";
+          loginOverlay.style.display = "none";
+          appRoot.style.display = "block";
+          // Load data and build calendar/day view
+          loadData();
+          // If current month not within range, set currentMonthDate to range start
+          const now = new Date();
+          if (now < RANGE_START || now > RANGE_END) {
+            currentMonthDate = new Date(RANGE_START.getTime());
+            selectedDate = new Date(RANGE_START.getTime());
+          } else {
+            currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          }
+          buildCalendar();
+          renderDayView();
+        } else {
+          err.textContent = "Incorrect password.";
+          err.style.display = "block";
+        }
+      });
+      // Reset everything handler
+      document.getElementById("resetAppButton").addEventListener("click", () => {
+        if (confirm("This will remove all data and your password. Are you sure?")) {
+          localStorage.removeItem(STORAGE_KEY_PASSWORD);
+          localStorage.removeItem(STORAGE_KEY_DATA);
+          location.reload();
+        }
+      });
+    }
+
+    /*
+      Calendar navigation controls: previous/next month and today button.
+    */
+    function initCalendarControls() {
+      document.getElementById("prevMonthBtn").addEventListener("click", () => {
+        currentMonthDate.setMonth(currentMonthDate.getMonth() - 1);
+        // If month falls out of range start, clamp
+        const firstOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
+        if (firstOfMonth < new Date(RANGE_START.getFullYear(), RANGE_START.getMonth(), 1)) {
+          currentMonthDate = new Date(RANGE_START.getFullYear(), RANGE_START.getMonth(), 1);
+        }
+        buildCalendar();
+      });
+      document.getElementById("nextMonthBtn").addEventListener("click", () => {
+        currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+        const firstOfMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
+        const lastMonthStart = new Date(RANGE_END.getFullYear(), RANGE_END.getMonth(), 1);
+        if (firstOfMonth > lastMonthStart) {
+          currentMonthDate = new Date(RANGE_END.getFullYear(), RANGE_END.getMonth(), 1);
+        }
+        buildCalendar();
+      });
+      document.getElementById("todayBtn").addEventListener("click", () => {
+        const now = new Date();
+        if (now < RANGE_START || now > RANGE_END) {
+          // Out of range, do nothing
+          return;
+        }
+        currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        buildCalendar();
+        renderDayView();
+      });
+    }
+
+    // Initialise the application when DOM is loaded
+    window.addEventListener("DOMContentLoaded", () => {
+      initPassword();
+      initCalendarControls();
+
+      // Prevent the space bar from scrolling the page when typing in inputs or
+      // textareas. Without this, pressing space inside a scrollable container
+      // such as the day view will cause the container to scroll instead of
+      // inserting a space character, which interrupts data entry. We do not
+      // call preventDefault here because we still want the space character
+      // inserted; we simply stop propagation so that the event isn't
+      // interpreted as a page‑level scroll command.
+      document.addEventListener('keydown', (e) => {
+        const tag = (e.target && e.target.tagName || '').toLowerCase();
+        if ((tag === 'textarea' || tag === 'input') && e.code === 'Space') {
+          // Only intercept if the input is not of type button, checkbox, etc.
+          const t = e.target.type;
+          if (!t || (t !== 'button' && t !== 'submit' && t !== 'checkbox' && t !== 'radio')) {
+            // stop propagation so the space doesn't scroll the page
+            e.stopPropagation();
+          }
+        }
+      }, true);
+    });
+  </script>
+</body>
+</html>
