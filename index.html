@@ -251,6 +251,15 @@
       color: #6b7280;
     }
 
+    /* Quote displayed for each day */
+    .day-header-quote {
+      font-size: 0.75rem;
+      color: #4b5563;
+      font-style: italic;
+      margin-top: 0.3rem;
+      max-width: 28rem;
+    }
+
     .meal-column {
       display: flex;
       flex-direction: column;
@@ -471,9 +480,6 @@
         <input type="password" id="passwordInput" autocomplete="current-password" />
         <div class="overlay-actions">
           <button class="btn-primary btn" id="loginButton">Unlock</button>
-          <button class="btn-ghost btn" id="resetAppButton" title="Clears password and all data">
-            Reset everything
-          </button>
         </div>
         <div id="loginError" class="overlay-error" style="display:none;"></div>
         <div class="overlay-small">
@@ -535,7 +541,8 @@
           <div class="day-header">
             <div>
               <div class="day-header-title" id="dayTitle"></div>
-              <div class="day-header-sub" id="daySubtitle"></div>
+          <div class="day-header-sub" id="daySubtitle"></div>
+          <div class="day-header-quote" id="dayQuote"></div>
             </div>
           </div>
 
@@ -571,6 +578,125 @@
 
     // Default meal order for rendering
     const MEALS = ["breakfast", "lunch", "dinner"];
+
+    // Bank of motivational quotes. If there are fewer than the number of days
+    // in the calendar range, quotes will cycle. Feel free to add more entries.
+    const QUOTES = [
+      "The best and most beautiful things in the world cannot be seen or even touched - they must be felt with the heart.",
+      "The best preparation for tomorrow is doing your best today.",
+      "Put your heart, mind, and soul into even your smallest acts. This is the secret of success.",
+      "I can't change the direction of the wind, but I can adjust my sails to always reach my destination.",
+      "We must let go of the life we have planned, so as to accept the one that is waiting for us.",
+      "Start by doing what's necessary; then do what's possible; and suddenly you are doing the impossible.",
+      "Happiness is not something you postpone for the future; it is something you design for the present.",
+      "It is during our darkest moments that we must focus to see the light.",
+      "Try to be a rainbow in someone's cloud.",
+      "From a small seed a mighty trunk may grow.",
+      "Nothing is impossible, the word itself says 'I'm possible'!",
+      "Change your thoughts and you change your world.",
+      "Health is the greatest gift, contentment the greatest wealth, faithfulness the best relationship.",
+      "Today I choose life. Every morning when I wake up I can choose joy...",
+      "Believe you can and you're halfway there.",
+      "No act of kindness, no matter how small, is ever wasted.",
+      "Keep your face always toward the sunshine - and shadows will fall behind you.",
+      "If opportunity doesn't knock, build a door.",
+      "Perfection is not attainable, but if we chase perfection we can catch excellence.",
+      "What lies behind you and what lies in front of you, pales in comparison to what lies inside of you.",
+      "What we think, we become.",
+      "Let us remember: One book, one pen, one child, and one teacher can change the world.",
+      "We know what we are, but know not what we may be.",
+      "Clouds come floating into my life, no longer to carry rain or usher storm, but to add color to my sunset sky.",
+      "Someone is sitting in the shade today because someone planted a tree a long time ago.",
+      "Let us sacrifice our today so that our children can have a better tomorrow.",
+      "There are two ways of spreading light: to be the candle or the mirror that reflects it.",
+      "A hero is someone who has given his or her life to something bigger than oneself.",
+      "Don't judge each day by the harvest you reap but by the seeds that you plant.",
+      "No matter what people tell you, words and ideas can change the world.",
+      "Your present circumstances don't determine where you can go; they merely determine where you start.",
+      "All you need is the plan, the road map, and the courage to press on to your destination.",
+      "As we express our gratitude, we must never forget that the highest appreciation is not to utter words, but to live by them.",
+      "Thousands of candles can be lighted from a single candle, and the life of the candle will not be shortened. Happiness never decreases by being shared.",
+      "We can't help everyone, but everyone can help someone.",
+      "I hated every minute of training, but I said, 'Don't quit. Suffer now and live the rest of your life as a champion.'",
+      "When you have a dream, you've got to grab it and never let go.",
+      "Turn your face to the sun and the shadows fall behind you.",
+      "I will love the light for it shows me the way, yet I will endure the darkness because it shows me the stars.",
+      "If you always put limit on everything you do, physical or anything else. It will spread into your work and into your life. There are no limits.",
+      "You must do the things you think you cannot do.",
+      "If you believe in yourself and have dedication and pride - and never quit, you'll be a winner. The price of victory is high but so are the rewards.",
+      "To love means loving the unlovable. To forgive means pardoning the unpardonable. Faith means believing the unbelievable.",
+      "Let us make our future now, and let us make our dreams tomorrow's reality.",
+      "Let your life lightly dance on the edges of Time like dew on the tip of a leaf.",
+      "The bird is powered by its own life and by its motivation.",
+      "Shoot for the moon and if you miss you will still be among the stars.",
+      "The measure of who we are is what we do with what we have.",
+      "Out of difficulties grow miracles.",
+      "It is in your moments of decision that your destiny is shaped.",
+      "When we seek to discover the best in others, we somehow bring out the best in ourselves.",
+      "It is never too late to be what you might have been.",
+      "Be brave enough to live life creatively.",
+      "Your personal life, your professional life, and your creative life are all intertwined.",
+      "There is nothing impossible to him who will try.",
+      "Happiness is a butterfly, which when pursued, is always just beyond your grasp.",
+      "Give light, and the darkness will disappear of itself.",
+      "If I have seen further than others, it is by standing upon the shoulders of giants.",
+      "Memories of our lives, of our works and our deeds will continue in others.",
+      "Love is a fruit in season at all times, and within reach of every hand.",
+      "Two roads diverged in a wood and I - I took the one less traveled by.",
+      "In a gentle way, you can shake the world.",
+      "When the sun is shining I can do anything; no mountain is too high.",
+      "Follow your bliss and the universe will open doors where there were only walls.",
+      "The power of imagination makes us infinite.",
+      "Don't limit yourself. You can go as far as your mind lets you. What you believe, remember, you can achieve.",
+      "Whoever is happy will make others happy too.",
+      "When you get into a tight place and everything goes against you, never give up then, for that is just the place and time that the tide will turn.",
+      "Every moment and every event of every man's life on earth plants something in his soul.",
+      "The limits of the possible can only be defined by going beyond them into the impossible.",
+      "Happiness resides not in possessions, and not in gold, happiness dwells in the soul.",
+      "Your big opportunity may be right where you are now.",
+      "Today is the only day. Yesterday is gone.",
+      "Somewhere, something incredible is waiting to be known.",
+      "How wonderful it is that nobody need wait a single moment before starting to improve the world.",
+      "Once we believe in ourselves, we can risk curiosity, wonder, spontaneous delight.",
+      "A champion is someone who gets up when he can't.",
+      "Everyone has inside of him a piece of good news.",
+      "Love the moment and the energy of that moment will spread beyond all boundaries.",
+      "Even if I knew that tomorrow the world would go to pieces, I would still plant my apple tree.",
+      "Thinking: the talking of the soul with itself.",
+      "Each day provides its own gifts.",
+      "Accept the things to which fate binds you, and love the people with whom fate brings you together.",
+      "If we did all the things we are capable of, we would literally astound ourselves.",
+      "With self-discipline most anything is possible.",
+      "What makes the desert beautiful is that somewhere it hides a well.",
+      "The only journey is the one within.",
+      "Throw your dreams into space like a kite, and you do not know what it will bring back.",
+      "Happiness is the natural flower of duty.",
+      "If the world seems cold to you, kindle fires to warm it.",
+      "Keep your feet on the ground, but let your heart soar as high as it will.",
+      "Tomorrow is the most important thing in life. Comes into us at midnight very clean.",
+      "We can change our lives. We can do, have, and be exactly what we wish.",
+      "I believe that if one always looked at the skies, one would end up with wings.",
+      "The things that we love tell us what we are.",
+      "The world is full of magical things patiently waiting for our wits to grow sharper.",
+      "I thank you God for this most amazing day.",
+      "Everyone here has the sense that right now is one of those moments when we are influencing the future.",
+      "Every story I create, creates me.",
+      "To the mind that is still, the whole universe surrenders."
+    ];
+
+    /**
+     * Determine the motivational quote for a given date. Uses the difference in
+     * days from the start of the range to pick a quote from the QUOTES array.
+     * Quotes repeat if there are fewer quotes than days in the range.
+     * @param {Date} date
+     * @returns {string}
+     */
+    function getQuoteForDate(date) {
+      const diffMs = date.getTime() - RANGE_START.getTime();
+      const dayIndex = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+      const idx = ((dayIndex % QUOTES.length) + QUOTES.length) % QUOTES.length;
+      return QUOTES[idx];
+    }
 
     // App state
     let currentMonthDate = new Date(); // Initially current month
@@ -627,14 +753,31 @@
     */
     function ensureDay(dateStr) {
       if (!logData[dateStr]) {
+        // Initialize a fresh day object with defaults including carbs and units
         logData[dateStr] = {
-          breakfast: { foods: "", bloodSugar: "", time: "", notes: "" },
-          lunch: { foods: "", bloodSugar: "", time: "", notes: "" },
-          dinner: { foods: "", bloodSugar: "", time: "", notes: "" },
+          breakfast: { foods: "", bloodSugar: "", time: "", notes: "", carbs: "", units: "" },
+          lunch: { foods: "", bloodSugar: "", time: "", notes: "", carbs: "", units: "" },
+          dinner: { foods: "", bloodSugar: "", time: "", notes: "", carbs: "", units: "" },
           extras: []
         };
       }
-      return logData[dateStr];
+      const dayObj = logData[dateStr];
+      // Ensure each meal has carbs and units properties for backwards compatibility
+      ["breakfast", "lunch", "dinner"].forEach((m) => {
+        const meal = dayObj[m];
+        if (meal) {
+          if (meal.carbs === undefined) meal.carbs = "";
+          if (meal.units === undefined) meal.units = "";
+        }
+      });
+      // Ensure all extras have carbs and units properties
+      if (Array.isArray(dayObj.extras)) {
+        dayObj.extras.forEach((ex) => {
+          if (ex.carbs === undefined) ex.carbs = "";
+          if (ex.units === undefined) ex.units = "";
+        });
+      }
+      return dayObj;
     }
 
     /*
@@ -785,6 +928,12 @@
       });
       if (extraCount > 0) summary.push(`${extraCount} extra${extraCount > 1 ? 's' : ''}`);
       daySubtitle.textContent = summary.length > 0 ? summary.join(", ") : "No entries yet.";
+
+      // Set the motivational quote for this day
+      const quoteEl = document.getElementById("dayQuote");
+      if (quoteEl) {
+        quoteEl.textContent = getQuoteForDate(selectedDate);
+      }
       // Clear container
       mealColumn.innerHTML = "";
       // Helper to create meal card
@@ -877,6 +1026,41 @@
         bsField.appendChild(bsRow);
         row.appendChild(bsField);
         card.appendChild(row);
+        // Notes
+        // Carbs and Units row
+        const carbUnitsRow = document.createElement("div");
+        carbUnitsRow.className = "input-row";
+        // Carbs field
+        const carbField = document.createElement("div");
+        carbField.className = "field";
+        const carbLabel = document.createElement("label");
+        carbLabel.textContent = "Carbs (g)";
+        const carbInput = document.createElement("input");
+        carbInput.type = "number";
+        carbInput.value = mealObj.carbs || "";
+        carbInput.addEventListener("input", () => {
+          mealObj.carbs = carbInput.value.trim();
+          saveData();
+        });
+        carbField.appendChild(carbLabel);
+        carbField.appendChild(carbInput);
+        // Units field
+        const unitsField = document.createElement("div");
+        unitsField.className = "field";
+        const unitsLabel = document.createElement("label");
+        unitsLabel.textContent = "Units";
+        const unitsInput = document.createElement("input");
+        unitsInput.type = "number";
+        unitsInput.value = mealObj.units || "";
+        unitsInput.addEventListener("input", () => {
+          mealObj.units = unitsInput.value.trim();
+          saveData();
+        });
+        unitsField.appendChild(unitsLabel);
+        unitsField.appendChild(unitsInput);
+        carbUnitsRow.appendChild(carbField);
+        carbUnitsRow.appendChild(unitsField);
+        card.appendChild(carbUnitsRow);
         // Notes
         const notesField = document.createElement("div");
         notesField.className = "field";
@@ -999,6 +1183,40 @@
         bsField.appendChild(bsRow);
         row.appendChild(bsField);
         card.appendChild(row);
+        // Carbs and Units row
+        const carbUnitsRow2 = document.createElement("div");
+        carbUnitsRow2.className = "input-row";
+        // Carbs field
+        const carbField2 = document.createElement("div");
+        carbField2.className = "field";
+        const carbLabel2 = document.createElement("label");
+        carbLabel2.textContent = "Carbs (g)";
+        const carbInput2 = document.createElement("input");
+        carbInput2.type = "number";
+        carbInput2.value = extraObj.carbs || "";
+        carbInput2.addEventListener("input", () => {
+          extraObj.carbs = carbInput2.value.trim();
+          saveData();
+        });
+        carbField2.appendChild(carbLabel2);
+        carbField2.appendChild(carbInput2);
+        // Units field
+        const unitsField2 = document.createElement("div");
+        unitsField2.className = "field";
+        const unitsLabel2 = document.createElement("label");
+        unitsLabel2.textContent = "Units";
+        const unitsInput2 = document.createElement("input");
+        unitsInput2.type = "number";
+        unitsInput2.value = extraObj.units || "";
+        unitsInput2.addEventListener("input", () => {
+          extraObj.units = unitsInput2.value.trim();
+          saveData();
+        });
+        unitsField2.appendChild(unitsLabel2);
+        unitsField2.appendChild(unitsInput2);
+        carbUnitsRow2.appendChild(carbField2);
+        carbUnitsRow2.appendChild(unitsField2);
+        card.appendChild(carbUnitsRow2);
         // Notes
         const notesField = document.createElement("div");
         notesField.className = "field";
@@ -1102,7 +1320,9 @@
           foods: "",
           bloodSugar: "",
           time: "",
-          notes: ""
+          notes: "",
+          carbs: "",
+          units: ""
         };
         dayData.extras.push(newExtra);
         saveData();
@@ -1182,14 +1402,7 @@
           err.style.display = "block";
         }
       });
-      // Reset everything handler
-      document.getElementById("resetAppButton").addEventListener("click", () => {
-        if (confirm("This will remove all data and your password. Are you sure?")) {
-          localStorage.removeItem(STORAGE_KEY_PASSWORD);
-          localStorage.removeItem(STORAGE_KEY_DATA);
-          location.reload();
-        }
-      });
+      // Reset everything handler removed: the reset button is no longer present on the login screen.
     }
 
     /*
